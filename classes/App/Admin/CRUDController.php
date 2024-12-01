@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Created by IntelliJ IDEA.
  * User: Nikolay Chervyakov 
@@ -8,6 +9,7 @@
 
 
 namespace App\Admin;
+
 use App\Events\PreRemoveEntityEvent;
 use App\Exception\NotFoundException;
 use App\Helpers\UserPictureUploader;
@@ -55,7 +57,7 @@ class CRUDController extends Controller
     public function before()
     {
         parent::before();
-        
+
         if (!$this->execute) {
             return;
         }
@@ -94,7 +96,6 @@ class CRUDController extends Controller
         if ($this->request->is_ajax()) {
             $this->processDataTableRequest($listFields);
             return;
-
         } else {
             $this->view->subview = $this->listView;
             $this->view->listFields = $listFields;
@@ -106,9 +107,7 @@ class CRUDController extends Controller
     /**
      * Must be overridden in child classes to fit the instance model to query (add relations and so on)
      */
-    protected function tuneModelForList()
-    {
-    }
+    protected function tuneModelForList() {}
 
     /**
      * Edit existing item
@@ -143,10 +142,9 @@ class CRUDController extends Controller
 
             if ($item->loaded()) {
                 $this->onSuccessfulEdit($item);
-                $this->redirect('/admin/' . strtolower($this->alias) . '/edit/'.$item->id());
+                $this->redirect('/admin/' . strtolower($this->alias) . '/edit/' . $item->id());
                 return;
             }
-
         } else {
 
             if (!$id) {
@@ -185,7 +183,7 @@ class CRUDController extends Controller
             $item->save();
 
             if ($item->loaded()) {
-                $this->redirect('/admin/' . strtolower($this->alias) . '/edit/'.$item->id());
+                $this->redirect('/admin/' . strtolower($this->alias) . '/edit/' . $item->id());
                 return;
             }
         }
@@ -224,12 +222,11 @@ class CRUDController extends Controller
 
         if ($event->getCanRemove()) {
             $item->delete();
-
         } else {
             throw new \LogicException($event->getReason());
         }
 
-        $location = '/admin/'.strtolower($this->model->model_name);
+        $location = '/admin/' . strtolower($this->model->model_name);
 
         if ($this->request->is_ajax()) {
             $this->jsonResponse(['success' => 1, 'location' => $location]);
@@ -257,6 +254,77 @@ class CRUDController extends Controller
         );
     }
 
+    // NEW FUNCTIONS
+    protected function normalizeFieldAndData(&$field, &$data)
+    {
+        if (is_numeric($field) && is_string($data)) {
+            $field = $data;
+            $data = [];
+        }
+        $data['original_field_name'] = $field;
+
+        if (!$data['type'] && $field != $this->model->id_field) {
+            $data['type'] = 'text';
+        }
+    }
+
+    protected function setDefaultTitle(&$field, &$data)
+    {
+        if (!array_key_exists('title', $data) || $data['title'] === null) {
+            $data['title'] = ucwords(implode(' ', preg_split('/_+/', $field, -1, PREG_SPLIT_NO_EMPTY)));
+        }
+    }
+
+    protected function handleLinkField(&$data)
+    {
+        if ($data['type'] == 'link' || $data['is_link']) {
+            $data['is_link'] = true;
+            if (!$data['template']) {
+                $data['template'] = '/admin/' . $this->alias . '/edit/%' . $this->model->id_field . '%';
+            }
+        }
+    }
+
+    protected function handleImageField(&$data)
+    {
+        if ($data['type'] == 'image') {
+            $data['max_width'] = $data['max_width'] ?? 40;
+            $data['max_height'] = $data['max_height'] ?? 30;
+            $data['dir_path'] = $data['dir_path'] ?? '/images/';
+            $data['orderable'] = $data['orderable'] ?? false;
+            $data['searching'] = $data['searching'] ?? false;
+        }
+    }
+
+    protected function handleExtraField(&$data)
+    {
+        if ($data['extra']) {
+            $data['orderable'] = false;
+            $data['searching'] = false;
+        }
+    }
+
+    protected function setDefaultOrderAndSearch(&$data)
+    {
+        $data['orderable'] = $data['orderable'] ?? true;
+        $data['searching'] = $data['searching'] ?? true;
+    }
+
+    protected function finalizeIdField($listFields)
+    {
+        if (array_key_exists($this->model->id_field, $listFields)) {
+            $idFieldData = &$listFields[$this->model->id_field];
+            if (!array_key_exists('type', $idFieldData)) {
+                $idFieldData['type'] = 'link';
+                $idFieldData['template'] = '/admin/' . $this->alias . '/edit/%' . $this->model->id_field . '%';
+            }
+            $idFieldData['width'] = '60';
+        }
+
+        return $listFields;
+    }
+    // END OF NEW FUNCTIONS
+
     /**
      * Prepares field meta information in a canonical form.
      * @return array
@@ -264,82 +332,22 @@ class CRUDController extends Controller
     protected function prepareListFields()
     {
         $listFields = $this->getListFields();
-
         $result = [];
+
         foreach ($listFields as $field => &$data) {
-            if (is_numeric($field) && is_string($data)) {
-                $field = $data;
-                $data = [];
-            }
-
-            $data['original_field_name'] = $field;
-
-            if (!$data['type'] && $field != $this->model->id_field) {
-                $data['type'] = 'text';
-            }
-
-            if (!array_key_exists('title', $data) || $data['title'] === null) {
-                $data['title'] = ucwords(implode(' ', preg_split('/_+/', $field, -1, PREG_SPLIT_NO_EMPTY)));
-            }
-
+            $this->normalizeFieldAndData($field, $data);
+            $this->setDefaultTitle($field, $data);
             $this->checkSubProp($field, $data);
-
-            if ($data['type'] == 'link' || $data['is_link']) {
-                $data['is_link'] = true;
-                if (!$data['template']) {
-                    $data['template'] = '/admin/' . $this->alias . '/edit/%' . $this->model->id_field . '%';
-                }
-            }
-
-            if ($data['type'] == 'image') {
-                if (!$data['max_width']) {
-                    $data['max_width'] = 40;
-                }
-
-                if (!$data['max_height']) {
-                    $data['max_height'] = 30;
-                }
-
-                if (!$data['dir_path']) {
-                    $data['dir_path'] = '/images/';
-                }
-
-                if (!array_key_exists('orderable', $data)) {
-                    $data['orderable'] = false;
-                }
-
-                if (!array_key_exists('searching', $data)) {
-                    $data['searching'] = false;
-                }
-            }
-
-            if ($data['extra']) {
-                $data['orderable'] = false;
-                $data['searching'] = false;
-            }
-
-            if (!array_key_exists('orderable', $data)) {
-                $data['orderable'] = true;
-            }
-
-            if (!array_key_exists('searching', $data)) {
-                $data['searching'] = true;
-            }
+            $this->handleLinkField($data);
+            $this->handleImageField($data);
+            $this->handleExtraField($data);
+            $this->setDefaultOrderAndSearch($data);
 
             $field = $this->recursiveCreateRelativeFieldName($field, $data);
-
             $result[$field] = $data;
         }
-        $listFields = $result;
-        unset($data);
-        if (array_key_exists($this->model->id_field, $listFields)) {
-            if (!array_key_exists('type', $listFields[$this->model->id_field])) {
-                $listFields[$this->model->id_field]['type'] = 'link';
-                $listFields[$this->model->id_field]['template'] = '/admin/' . $this->alias . '/edit/%' . $this->model->id_field . '%';
-            }
-            $listFields[$this->model->id_field]['width'] = '60';
-        }
 
+        $listFields = $this->finalizeIdField($result);
         return $listFields;
     }
 
@@ -442,14 +450,14 @@ class CRUDController extends Controller
      */
     public function fieldFormatter($value, $item = null, array $format = [])
     {
-//        $event = new AdminListFieldFilterEvent($value, $item, $format);
-//        $this->pixie->dispatcher->dispatch('PRE_ADMIN_LIST_FIELD_FORMAT', $event);
-//        $value = $event->getValue();
+        //        $event = new AdminListFieldFilterEvent($value, $item, $format);
+        //        $this->pixie->dispatcher->dispatch('PRE_ADMIN_LIST_FIELD_FORMAT', $event);
+        //        $value = $event->getValue();
 
         if ($format['max_length']) {
             $length = strlen($value);
             if ($length > $format['max_length']) {
-                $value = substr($value, 0, $format['max_length']).'...';
+                $value = substr($value, 0, $format['max_length']) . '...';
             }
         }
 
@@ -482,7 +490,6 @@ class CRUDController extends Controller
                     $model = $matches['model'];
                     $modelProp = $matches['model_prop'];
                     $propValue = $item->$model->$modelProp;
-
                 } else {
                     $propValue = $item->$prop;
                 }
@@ -501,7 +508,6 @@ class CRUDController extends Controller
                     $lpModel = $lpMatches['model'];
                     $lpModelProp = $lpMatches['model_prop'];
                     $linkPropValue = $item->$lpModel->$lpModelProp;
-
                 } else {
                     $linkPropValue = $item->$linkProp;
                 }
@@ -510,9 +516,9 @@ class CRUDController extends Controller
             }
         }
 
-//        $event = new AdminListFieldFilterEvent($value, $item, $format);
-//        $this->pixie->dispatcher->dispatch('POST_ADMIN_LIST_FIELD_FORMAT', $event);
-//        $value = $event->getValue();
+        //        $event = new AdminListFieldFilterEvent($value, $item, $format);
+        //        $this->pixie->dispatcher->dispatch('POST_ADMIN_LIST_FIELD_FORMAT', $event);
+        //        $value = $event->getValue();
 
         return $value;
     }
@@ -535,7 +541,7 @@ class CRUDController extends Controller
         $editFields = $this->prepareEditFields();
         foreach ($editFields as $field => $options) {
             if (!in_array($options['type'], ['image', 'file'])) {
-                 continue;
+                continue;
             }
 
             $file = $this->request->uploadedFile($field);
@@ -544,7 +550,6 @@ class CRUDController extends Controller
 
             if ($options['use_external_dir'] && $item instanceof User) {
                 UserPictureUploader::create($this->pixie, $item, $file, $removeOld)->execute();
-
             } else {
                 if ($removeOld) {
                     $this->removeExistingFile($item, $field, $options);
@@ -572,7 +577,7 @@ class CRUDController extends Controller
         }
         $existingFile = $item->$field;
         $absPath = $options['abs_path'] ? $options['dir_path']
-            : $this->pixie->root_dir.'web/'.preg_replace('|^/+|', '', $options['dir_path']) . $existingFile;
+            : $this->pixie->root_dir . 'web/' . preg_replace('|^/+|', '', $options['dir_path']) . $existingFile;
         if (file_exists($absPath) && is_file($absPath) && is_writable($absPath)) {
             unlink($absPath);
         }
@@ -585,19 +590,20 @@ class CRUDController extends Controller
             'edit' => [
                 'extra' => true,
                 'type' => 'html',
-                'template' => '<a href="/admin/'.strtolower($this->alias).'/edit/%'.$this->model->id_field.'%" '
+                'template' => '<a href="/admin/' . strtolower($this->alias) . '/edit/%' . $this->model->id_field . '%" '
                     . ' class="js-edit-item">Edit</a>',
                 'column_classes' => 'edit-action-column'
             ]
         ];
     }
 
-    protected function getDeleteLinkProp() {
+    protected function getDeleteLinkProp()
+    {
         return [
             'delete' => [
                 'extra' => true,
                 'type' => 'html',
-                'template' => '<a href="/admin/'.strtolower($this->alias).'/delete/%'.$this->model->id_field.'%" '
+                'template' => '<a href="/admin/' . strtolower($this->alias) . '/delete/%' . $this->model->id_field . '%" '
                     . ' class="js-delete-item">Delete</a>',
                 'column_classes' => 'delete-action-column'
             ],
@@ -609,7 +615,7 @@ class CRUDController extends Controller
         return [
             'cb' => [
                 'extra' => true,
-                'template' => '<input type="checkbox" name="ids[]" value="%'.$this->model->id_field.'%" />',
+                'template' => '<input type="checkbox" name="ids[]" value="%' . $this->model->id_field . '%" />',
                 'title' => '',
                 'type' => 'html',
                 'column_classes' => 'cb-column'
@@ -654,13 +660,13 @@ class CRUDController extends Controller
         }
 
         if (strpos($orderColumn, '___') === false) {
-            $this->model->order_by($orderColumn, $order['dir'] ? : 'asc');
+            $this->model->order_by($orderColumn, $order['dir'] ?: 'asc');
         } else {
             // Convert field names o DB relations
             $orderColumn = str_replace('___', '.', $orderColumn);
             // Convert all dots into underscores except the last dot (to comply Pixie's naming convention)
             $orderColumn = preg_replace('/\.(?![^\.]+$)/', '_', $orderColumn);
-            $this->model->order_by($orderColumn, $order['dir'] ? : 'asc');
+            $this->model->order_by($orderColumn, $order['dir'] ?: 'asc');
         }
 
         // Set filtering
@@ -676,7 +682,7 @@ class CRUDController extends Controller
                 }
                 $fieldSearchConditions = [];
                 foreach ($searchValues as $sVal) {
-                    if (!is_numeric($sVal) && $lfData['data_type'] == 'integer' ) {
+                    if (!is_numeric($sVal) && $lfData['data_type'] == 'integer') {
                         continue;
                     }
                     $fieldSearchConditions[] = ['and', [str_replace('___', '.', $lf), 'LIKE', "%$sVal%"]];
@@ -728,7 +734,6 @@ class CRUDController extends Controller
             } else {
                 $resultField = $this->fieldFormatter($item->$modelName->$modelProp, $item, $info);
             }
-
         } else if (isset($item->$field)) {
             $resultField = $this->fieldFormatter($item->$field, $item, $info);
         } else if ($info['extra']) {
@@ -738,11 +743,7 @@ class CRUDController extends Controller
         return $resultField;
     }
 
-    protected function onSuccessfulEdit(Model $model)
-    {
-    }
+    protected function onSuccessfulEdit(Model $model) {}
 
-    protected function preProcessEdit($item, $data)
-    {
-    }
+    protected function preProcessEdit($item, $data) {}
 }
