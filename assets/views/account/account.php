@@ -25,13 +25,13 @@
                     </ul>
                     <div id="myTabContent" class="tab-content">
                         <div class="tab-pane fade in active latest-orders" id="my-orders">
-                            <?php include __DIR__.'/_order_list.php'; ?>
+                            <?php include_once __DIR__ . '/_order_list.php'; ?>
                             <p class="text-right">
                                 <a href="/account/orders" id="order_link" class="btn btn-primary ladda-button" data-style="expand-right"><span class="ladda-label">Go to my orders</span></a>
                             </p>
                         </div>
                         <div class="tab-pane fade profile-show" id="profile">
-                            <?php include __DIR__ . '/_profile_info.php'; ?>
+                            <?php include_once __DIR__ . '/_profile_info.php'; ?>
                         </div>
                     </div>
                 <?php endif; ?>
@@ -41,26 +41,25 @@
     </div>
     <!-- /.container -->
 
-<?php if ($useRest): ?>
-    <script type="text/javascript">
-        var orderStatusLabelMapping = <?php echo json_encode($this->getHelper()->getOrderStatusLabelMapping()); ?>;
+    <?php if ($useRest): ?>
+        <script type="text/javascript">
+            var orderStatusLabelMapping = <?php echo json_encode($this->getHelper()->getOrderStatusLabelMapping()); ?>;
 
-        function order_status(status)
-        {
-            var canonicalStatus = $.trim(status).toLowerCase(),
-                label = orderStatusLabelMapping[canonicalStatus]
-                    ? orderStatusLabelMapping[canonicalStatus] : 'label-default';
-            return $('<span class="label ' + label + '"></span>').text(status)[0].outerHTML;
-        }
-    </script>
+            function order_status(status) {
+                var canonicalStatus = $.trim(status).toLowerCase(),
+                    label = orderStatusLabelMapping[canonicalStatus] ?
+                    orderStatusLabelMapping[canonicalStatus] : 'label-default';
+                return $('<span class="label ' + label + '"></span>').text(status)[0].outerHTML;
+            }
+        </script>
 
-    <script type="text/javascript" charset="utf-8" src="/js/can.custom.min.js"></script>
-    <script type="text/javascript" charset="utf-8" src="/js/jquery.form.min.js"></script>
-    <script type="text/javascript" charset="utf-8" src="/js/XMLWriter.js"></script>
-    <script type="text/javascript" charset="utf-8" src="/js/account.js"></script>
+        <script type="text/javascript" charset="utf-8" src="/js/can.custom.min.js"></script>
+        <script type="text/javascript" charset="utf-8" src="/js/jquery.form.min.js"></script>
+        <script type="text/javascript" charset="utf-8" src="/js/XMLWriter.js"></script>
+        <script type="text/javascript" charset="utf-8" src="/js/account.js"></script>
 
-    <script type="text/x-handlebars" charset="utf-8" id="layout_header">
-        <h1 class="page-header">{{ title }}</h1>
+        <script type="text/x-handlebars" charset="utf-8" id="layout_header">
+            <h1 class="page-header">{{ title }}</h1>
         <ol class="breadcrumb">
             {{#each breadcrumbs }}
                 <li {{#if active }}class="active"{{/if}}>
@@ -74,8 +73,8 @@
         </ol>
     </script>
 
-    <script type="text/x-handlebars" id="layout_account">
-        <ul id="myTab" class="nav nav-tabs" role="tablist">
+        <script type="text/x-handlebars" id="layout_account">
+            <ul id="myTab" class="nav nav-tabs" role="tablist">
             <li data-id="my-orders"><a href="#!">My Latest Orders</a></li>
             <li data-id="profile"><a href="#!profile">Profile</a></li>
         </ul>
@@ -93,8 +92,8 @@
         </div>
     </script>
 
-    <script type="text/x-handlebars" charset="utf-8" id="tpl_order_list">
-        <div class="row">
+        <script type="text/x-handlebars" charset="utf-8" id="tpl_order_list">
+            <div class="row">
             <div class="col-xs-12">
                 {{#if orders.length }}
                 <table class="table table-striped">
@@ -127,8 +126,8 @@
         </div>
     </script>
 
-    <script type="text/x-handlebars" charset="utf-8" id="tpl_user_profile">
-        <div class="row">
+        <script type="text/x-handlebars" charset="utf-8" id="tpl_user_profile">
+            <div class="row">
             <div class="col-xs-8">
                 <table class="table profile-table table-striped">
                     <thead>
@@ -181,8 +180,8 @@
         </div>
     </script>
 
-    <script type="text/x-handlebars" charset="utf-8" id="layout_order">
-        <div class="row">
+        <script type="text/x-handlebars" charset="utf-8" id="layout_order">
+            <div class="row">
             <div class="col-xs-12">
                 <div class="panel panel-success">
                     <div class="panel-heading">
@@ -246,8 +245,8 @@
         </div>
     </script>
 
-    <script type="text/x-handlebars" charset="utf-8" id="layout_profile_edit">
-        <div class="row">
+        <script type="text/x-handlebars" charset="utf-8" id="layout_profile_edit">
+            <div class="row">
             <div class="col-xs-12">
                 {{#if successMessage }}
                     <div class="alert alert-success" role="alert">{{ successMessage }}</div>
@@ -308,17 +307,17 @@
         </div>
     </script>
 
-<?php else: ?>
-    <script>
-        $(function() {
-            Ladda.bind( '#order_link' );
+    <?php else: ?>
+        <script>
+            $(function() {
+                Ladda.bind('#order_link');
 
-            $('#order_link').on('click', function(e) {
-                var l = Ladda.create(document.querySelector( '#order_link' ));
-                l.start();
-                window.location.href = "/account/orders";
-                return false; // Will stop the submission of the form
+                $('#order_link').on('click', function(e) {
+                    var l = Ladda.create(document.querySelector('#order_link'));
+                    l.start();
+                    window.location.href = "/account/orders";
+                    return false; // Will stop the submission of the form
+                });
             });
-        });
-    </script>
-<?php endif; ?>
+        </script>
+    <?php endif; ?>
