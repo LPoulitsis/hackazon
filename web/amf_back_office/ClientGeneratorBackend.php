@@ -1,4 +1,5 @@
 <?php
+
 /**
  *  This file is part of amfPHP
  *
@@ -14,19 +15,19 @@
 require_once(dirname(__FILE__) . '/ClassLoader.php');
 $accessManager = new Amfphp_BackOffice_AccessManager();
 $isAccessGranted = $accessManager->isAccessGranted();
-if(!$isAccessGranted){
+if (!$isAccessGranted) {
     die('User not logged in');
 }
 
 $servicesStr = null;
 if (isset($GLOBALS['HTTP_RAW_POST_DATA'])) {
     $servicesStr = $GLOBALS['HTTP_RAW_POST_DATA'];
-}else{
+} else {
     $servicesStr = file_get_contents('php://input');
 }
-    
+
 $services = json_decode($servicesStr);
-$generatorClass = $_GET['generatorClass'];
+$generatorClass = htmlspecialchars($_GET['generatorClass']);
 $generatorManager = new Amfphp_BackOffice_ClientGenerator_GeneratorManager();
 $generators = $generatorManager->loadGenerators(array('ClientGenerator/Generators'));
 
@@ -54,4 +55,3 @@ if (Amfphp_BackOffice_ClientGenerator_Util::serverCanZip()) {
     echo " Server can not create zip of generated project, because ZipArchive is not available.<br/><br/>";
     echo 'client project written to ' . $targetFolder;
 }
-?>
