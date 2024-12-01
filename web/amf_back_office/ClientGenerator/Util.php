@@ -17,20 +17,30 @@
  * @author Ariel Sommeria-klein
  * @package Amfphp__BackOffice_ClientGenerator
  */
-class Amfphp_BackOffice_ClientGenerator_Util {
+class Amfphp_BackOffice_ClientGenerator_Util
+{
 
     /**
      * recursively copies one folder to another.
      * @param string $src
      * @param string $dst must not exist yet
      */
-    public static function recurseCopy($src, $dst) {
+    public static function recurseCopy($src, $dst)
+    {
         $dir = opendir($src);
-        if(!file_exists($dst)){
-            mkdir($dst);
+
+        $normalizedDst = realpath(dirname($dst)) . '/' . basename($dst);
+        if ($normalizedDst === false || strpos($normalizedDst, '../') !== false || strpos($normalizedDst, '..\\') !== false) {
+            echo "Invalid destination directory.";
+            return;
         }
-        while (false !== ( $file = readdir($dir))) {
-            if (( $file != '.' ) && ( $file != '..' )) {
+
+        if (!file_exists($normalizedDst)) {
+            mkdir($normalizedDst, 0755, true);
+        }
+
+        while (false !== ($file = readdir($dir))) {
+            if (($file != '.') && ($file != '..')) {
                 if (is_dir($src . '/' . $file)) {
                     self::recurseCopy($src . '/' . $file, $dst . '/' . $file);
                 } else {
@@ -40,12 +50,13 @@ class Amfphp_BackOffice_ClientGenerator_Util {
         }
         closedir($dir);
     }
-    
+
     /**
      * looks if the server has the necessary zip functions.
      * @return boolean 
      */
-    public static function serverCanZip(){
+    public static function serverCanZip()
+    {
         return class_exists('ZipArchive');
     }
     /**
@@ -54,42 +65,42 @@ class Amfphp_BackOffice_ClientGenerator_Util {
      * @param type $zipfilename
      * @param type $removeFromLocalName use to reduce paths inside zip 
      */
-    public static function zipFolder($sourcefolder, $zipfilename, $removeFromLocalName) {
-// instantate an iterator (before creating the zip archive, just
-// in case the zip file is created inside the source folder)
-// and traverse the directory to get the file list.
+    public static function zipFolder($sourcefolder, $zipfilename, $removeFromLocalName)
+    {
+        // instantate an iterator (before creating the zip archive, just
+        // in case the zip file is created inside the source folder)
+        // and traverse the directory to get the file list.
         $dirlist = new RecursiveDirectoryIterator($sourcefolder);
         $filelist = new RecursiveIteratorIterator($dirlist);
 
-// instantate object
+        // instantate object
         $zip = new ZipArchive();
 
         $removeFromLocalName = preg_replace('|[\\/]|', DIRECTORY_SEPARATOR, $removeFromLocalName);
         $zipfilename = preg_replace('|[\\/]|', DIRECTORY_SEPARATOR, $zipfilename);
 
-// create and open the archive
+        // create and open the archive
         if (($res = $zip->open("$zipfilename", ZipArchive::CREATE)) !== TRUE) {
             throw new Exception("Could not open archive");
         }
 
-// add each file in the file list to the archive
+        // add each file in the file list to the archive
         /** @var SplFileInfo $value */
         foreach ($filelist as $key => $value) {
-            if($value->getBasename() == '.'){
+            if ($value->getBasename() == '.') {
                 continue;
             }
-            if($value->getBasename() == '..'){
+            if ($value->getBasename() == '..') {
                 continue;
             }
             $localName = str_replace($removeFromLocalName, '', preg_replace('|[\\/]|', DIRECTORY_SEPARATOR, $value->getPathname()));
-            if(!$zip->addFile($value->getPathname(), $localName)){
+            if (!$zip->addFile($value->getPathname(), $localName)) {
                 throw new Exception("ERROR: Could not add file: $key");
             }
         }
 
-// close the archive
+        // close the archive
         $zip->close();
-
     }
 
     // ------------ lixlpixel recursive PHP functions -------------
@@ -108,7 +119,8 @@ class Amfphp_BackOffice_ClientGenerator_Util {
      * @param boolean $empty
      * @return boolean
      */
-    public static function recursive_remove_directory($directory, $empty=FALSE) {
+    public static function recursive_remove_directory($directory, $empty = FALSE)
+    {
         // if the path has a slash at the end we remove it here
         if (substr($directory, -1) == '/') {
             $directory = substr($directory, 0, -1);
@@ -165,7 +177,4 @@ class Amfphp_BackOffice_ClientGenerator_Util {
             return TRUE;
         }
     }
-
 }
-
-?>
