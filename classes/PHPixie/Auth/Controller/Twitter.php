@@ -1,6 +1,7 @@
 <?php
 
 namespace PHPixie\Auth\Controller;
+
 use PHPixie\Controller;
 
 /**
@@ -15,7 +16,8 @@ use PHPixie\Controller;
  * Optionally you can pass a ?return_url =<url> parameter to specify where to redirect the
  * user after he is logged in. You can also specify a default redirect url in the auth.php config file.
  */
-abstract class Twitter extends Controller {
+abstract class Twitter extends Controller
+{
 
     /**
      * Twitter login provider to log the user in
@@ -46,7 +48,8 @@ abstract class Twitter extends Controller {
      *
      * @return void
      */
-    public function before() {
+    public function before()
+    {
         $config = $this->request->param('config', 'default');
         $this->provider = $this->pixie->auth->provider('twitter', $config);
         $this->default_return_url = $this->pixie->config->get("auth.{$config}.login.twitter.return_url", null);
@@ -59,7 +62,8 @@ abstract class Twitter extends Controller {
      *
      * @return void
      */
-    public function action_popup() {
+    public function action_popup()
+    {
         $this->handle_request('popup');
     }
 
@@ -69,7 +73,8 @@ abstract class Twitter extends Controller {
      *
      * @return void
      */
-    public function action_index() {
+    public function action_index()
+    {
         $this->handle_request('page');
     }
 
@@ -80,17 +85,18 @@ abstract class Twitter extends Controller {
      *                             Either 'page' or 'popup'
      * @return void
      */
-    public function handle_request($display_mode) {
+    public function handle_request($display_mode)
+    {
 
         if ($error = $this->request->get('error')) {
             $this->error($display_mode);
         }
 
-        $state = md5(uniqid(rand(), true));
+        $state = md5(uniqid(random_int(0, PHP_INT_MAX), true));
         $timestamp = time();
 
-        if (!empty($_GET['oauth_token']) && !empty($_GET['oauth_verifier'])){
-            $params = $this->provider->exchange_code($state, $timestamp,$_GET['oauth_token'],$_GET['oauth_verifier']);
+        if (!empty($_GET['oauth_token']) && !empty($_GET['oauth_verifier'])) {
+            $params = $this->provider->exchange_code($state, $timestamp, $_GET['oauth_token'], $_GET['oauth_verifier']);
             $this->pixie->session->remove($this->state_key);
 
             $this->success($params, $display_mode);
@@ -99,10 +105,10 @@ abstract class Twitter extends Controller {
         $this->pixie->session->set($this->state_key, $state);
         $return_url = $this->request->get('return_url', $this->default_return_url);
 
-        if (!$return_url && $display_mode == 'page'){
+        if (!$return_url && $display_mode == 'page') {
             $return_url = $this->request->server('HTTP_REFERER');
             if (empty($return_url))
-                $return_url = 'http://'.$this->request->server('HTTP_HOST');
+                $return_url = 'http://' . $this->request->server('HTTP_HOST');
         }
 
         $this->pixie->session->set($this->return_url_key, $return_url);
@@ -117,19 +123,21 @@ abstract class Twitter extends Controller {
      *                             Either 'page' or 'popup'
      * @return void
      */
-    public function error($display_mode) {
+    public function error($display_mode)
+    {
 
         $this->pixie->session->remove($this->state_key);
         $this->return_to_url($display_mode);
     }
 
 
-    public function success($access_token, $display_mode) {
+    public function success($access_token, $display_mode)
+    {
 
         $return_url = $this->pixie->session->get($this->return_url_key);
         if ($this->provider->login($access_token)) {
             $this->return_to_url($display_mode, $return_url);
-        }else {
+        } else {
             $this->new_user($access_token, $return_url, $display_mode);
         }
     }
@@ -144,12 +152,13 @@ abstract class Twitter extends Controller {
      * @param string $return_url Return URL to redirect the user after.
      * @return void
      */
-    public function return_to_url($display_mode, $return_url = null) {
+    public function return_to_url($display_mode, $return_url = null)
+    {
         if ($display_mode == 'popup') {
             $view = $this->pixie->view('auth/oauth');
             $view->return_url = $return_url;
-            $this->response-> body = $view->render();
-        }else {
+            $this->response->body = $view->render();
+        } else {
             if ($return_url == null)
                 $return_url = $this->pixie->basepath;
             $this->response->redirect($return_url);
@@ -167,5 +176,4 @@ abstract class Twitter extends Controller {
      * @return void
      */
     public abstract function new_user($access_token, $return_url, $display_mode);
-
 }
