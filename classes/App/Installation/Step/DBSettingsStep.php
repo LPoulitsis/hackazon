@@ -69,8 +69,7 @@ class DBSettingsStep extends AbstractStep
             $conn = new \PDO($dsn, $this->user, $this->password);
 
             //----------------------------------------------------------------------------------------------------//
-            $stmt = $conn->prepare('USE `' . $this->db . '`');
-            $stmt->execute();
+            $stmt = null;
             if (preg_match('/^[a-zA-Z0-9_]+$/', $this->db)) {
                 $sql = 'USE `' . $this->db . '`';
                 $conn->exec($sql);
