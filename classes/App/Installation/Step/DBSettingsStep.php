@@ -71,12 +71,23 @@ class DBSettingsStep extends AbstractStep
             //----------------------------------------------------------------------------------------------------//
             $stmt = $conn->prepare('USE `' . $this->db . '`');
             $stmt->execute();
+            if (preg_match('/^[a-zA-Z0-9_]+$/', $this->db)) {
+                $sql = 'USE `' . $this->db . '`';
+                $conn->exec($sql);
+            } else {
+                throw new \Exception('Invalid database name!');
+            }
             //----------------------------------------------------------------------------------------------------//
 
             if (!$stmt || $stmt->errorCode() > 0) {
                 if ($this->createIfNotExists) {
-                    $stmt = $conn->prepare("CREATE DATABASE `" . $this->db . "` COLLATE 'utf8_general_ci'");
-                    $stmt->execute();
+                    if (preg_match('/^[a-zA-Z0-9_]+$/', $this->db)) {
+                        $sql = "CREATE DATABASE `" . $this->db . "` COLLATE 'utf8_general_ci'";
+                        $conn->exec($sql);
+                    } else {
+                        throw new \Exception("Invalid database name!");
+                    }
+
 
                     if (!$stmt || $stmt->errorCode() > 0) {
                         throw new \Exception('Can\'t create database ' . $this->db);
