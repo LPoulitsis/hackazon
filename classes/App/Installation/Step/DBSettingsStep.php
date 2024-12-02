@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Created by IntelliJ IDEA.
  * User: Nikolay Chervyakov 
@@ -34,7 +35,7 @@ class DBSettingsStep extends AbstractStep
     {
         $this->isValid = false;
 
-        $this->useExistingPassword = (boolean) $data['use_existing_password'];
+        $this->useExistingPassword = (bool) $data['use_existing_password'];
         $this->host = $data['host'];
         $this->port = $data['port'];
         $this->user = $data['user'];
@@ -67,11 +68,15 @@ class DBSettingsStep extends AbstractStep
             // Try to connect
             $conn = new \PDO($dsn, $this->user, $this->password);
 
-            $stmt = $conn->query('USE `'.$this->db.'`');
+            //----------------------------------------------------------------------------------------------------//
+            $stmt = $conn->prepare('USE `' . $this->db . '`');
+            $stmt->execute();
+            //----------------------------------------------------------------------------------------------------//
 
             if (!$stmt || $stmt->errorCode() > 0) {
                 if ($this->createIfNotExists) {
-                    $stmt = $conn->query("CREATE DATABASE `".$this->db."` COLLATE 'utf8_general_ci'");
+                    $stmt = $conn->prepare("CREATE DATABASE `" . $this->db . "` COLLATE 'utf8_general_ci'");
+                    $stmt->execute();
 
                     if (!$stmt || $stmt->errorCode() > 0) {
                         throw new \Exception('Can\'t create database ' . $this->db);
@@ -80,8 +85,6 @@ class DBSettingsStep extends AbstractStep
                     throw new \Exception('Can\'t connect to database ' . $this->db);
                 }
             }
-
-
         } catch (\Exception $e) {
             $this->errors[] = "Error " . $e->getCode() . ": " . $e->getMessage();
             return false;
@@ -122,4 +125,4 @@ class DBSettingsStep extends AbstractStep
             'use_existing_password' => $this->useExistingPassword,
         ];
     }
-} 
+}
